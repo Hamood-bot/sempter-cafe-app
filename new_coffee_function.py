@@ -1,4 +1,4 @@
-    def get_random_coffee_reading(self):
+ def get_random_coffee_reading(self):
         """Generate a random reading from a curated set of fresh funny and motivational quotes."""
         quotes = [
             # Fresh funny quotes
