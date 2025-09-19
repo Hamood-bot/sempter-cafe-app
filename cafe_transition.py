@@ -1041,6 +1041,8 @@ class CafeApp:
                 if self.coffee_channel:
                     self.coffee_channel.stop()
                     self.coffee_channel = None
+                # Restore background audio levels
+                self.restore_background_audio()
                 # Play ring and transition to coffee scene
                 self.play_ring()
                 self.coffee_scene_active = True
@@ -1656,6 +1658,8 @@ class CafeApp:
                 if self.coffee_channel:
                     self.coffee_channel.stop()
                     self.coffee_channel = None
+                # Restore background audio levels when cancelled
+                self.restore_background_audio()
                 return
         
         # Meditation controls
@@ -2998,24 +3002,92 @@ class CafeApp:
 
     # -------- Coffee Scene Methods --------
     def start_coffee_scene(self):
-        """Start the coffee brewing process."""
+        """Start the coffee brewing process with audio ducking."""
         self.coffee_brewing = True
         self.coffee_brew_timer = 0
-        # Play coffee brewing sound
+        
+        # Implement audio ducking - lower other sounds during coffee brewing
+        self.duck_background_audio()
+        
+        # Play coffee brewing sound at maximum volume
         if self.coffee_loaded:
             try:
                 self.coffee_channel = self.coffee_sound.play(loops=0)  # Play once, no looping
             except Exception as e:
                 print("[WARN] Could not play coffee sound:", e)
+    
+    def duck_background_audio(self):
+        """Lower volume of background music and rain during coffee brewing."""
+        # Store original volumes for restoration
+        if not hasattr(self, 'original_volumes'):
+            self.original_volumes = {}
+        
+        # Duck background music
+        if self.music_channel and self.music_loaded:
+            try:
+                self.original_volumes['music'] = MUSIC_VOLUME
+                # Lower music to 15% of original volume
+                if hasattr(self, 'background_music'):
+                    self.background_music.set_volume(MUSIC_VOLUME * 0.15)
+            except Exception as e:
+                print("[WARN] Could not duck music volume:", e)
+        
+        # Duck rain ambience
+        if self.rain_channel and self.rain_loaded:
+            try:
+                self.original_volumes['rain'] = RAIN_VOLUME
+                # Lower rain to 25% of original volume
+                self.rain_sound.set_volume(RAIN_VOLUME * 0.25)
+            except Exception as e:
+                print("[WARN] Could not duck rain volume:", e)
+        
+        # Duck fireplace if playing
+        if self.fireplace_playing and hasattr(self, 'fireplace_sound'):
+            try:
+                self.original_volumes['fireplace'] = 0.95
+                # Lower fireplace to 20% of original volume
+                self.fireplace_sound.set_volume(0.95 * 0.20)
+            except Exception as e:
+                print("[WARN] Could not duck fireplace volume:", e)
+    
+    def restore_background_audio(self):
+        """Restore original volumes after coffee brewing."""
+        if not hasattr(self, 'original_volumes'):
+            return
+        
+        # Restore music volume
+        if 'music' in self.original_volumes and hasattr(self, 'background_music'):
+            try:
+                self.background_music.set_volume(self.original_volumes['music'])
+            except Exception as e:
+                print("[WARN] Could not restore music volume:", e)
+        
+        # Restore rain volume
+        if 'rain' in self.original_volumes and hasattr(self, 'rain_sound'):
+            try:
+                self.rain_sound.set_volume(self.original_volumes['rain'])
+            except Exception as e:
+                print("[WARN] Could not restore rain volume:", e)
+        
+        # Restore fireplace volume
+        if 'fireplace' in self.original_volumes and hasattr(self, 'fireplace_sound'):
+            try:
+                self.fireplace_sound.set_volume(self.original_volumes['fireplace'])
+            except Exception as e:
+                print("[WARN] Could not restore fireplace volume:", e)
+        
+        # Clear stored volumes
+        self.original_volumes.clear()
         
     def get_random_coffee_reading(self):
-        """Generate a random reading from a curated set of short, fun quotes (not coffee-specific)."""
+        """Generate a random reading from a curated set of fresh funny and motivational quotes."""
         quotes = [
-            "Plot twist: it worked on the first try",
-            "Low effort, high impact",
-            "Shipping beats perfect",
-            "Vibes immaculate, bugs negotiable",
-            "Pixels over polish",
+            # Fresh funny quotes
+            "Your code works on Fridays but sulks on Mondays",
+            "Rubber duck debugging: now with actual quacking",
+            "Stack Overflow saved my marriage and my sanity",
+            "Git blame: the most honest feature ever invented",
+            "My programs have trust issues with semicolons",
             "No meetings, just momentum",
             "Stay curious, stay scrappy",
             "Move fast, don't break your soul",
